@@ -2,7 +2,7 @@
 It’s a small wep app about travel-list, using React.js
 # Pizza-menu
 
-## deployed site : 
+## deployed site : https://get-ready-to-travel.netlify.app/
 
 ## to run the projet :
 1. clone the repo
