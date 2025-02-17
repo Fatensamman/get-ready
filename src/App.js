@@ -8,21 +8,44 @@ import "./index.css";
 function App() {
   const [items, setItems] = useState([]);
   function addItemToPackage(item) {
-    setItems(() => [...items, item]);
+    setItems((items) => [...items, item]);
+  }
+  function handleDeleteItem(id) {
+    setItems((items) => items.filter((item) => item.id !== id));
+  }
+  function handleToggleItem(id) {
+    setItems((items) =>
+      items.map((item) =>
+        item.id === id ? { ...item, packed: !item.packed } : item
+      )
+    );
+  }
+  function clearList() {
+    const confirmed = window.confirm(
+      "Are you sure? this will clear your list permenantly"
+    );
+    if (confirmed) {
+      setItems(() => []);
+    }
   }
   return (
     <div className="app">
       <Logo />
-      <Form addItemToPackage={addItemToPackage} />
-      <PackagingList items={items} />
-      <Stats />
+      <Form onAddItemToPackage={addItemToPackage} />
+      <PackagingList
+        items={items}
+        onDeleteItem={handleDeleteItem}
+        onToggleItem={handleToggleItem}
+        clearList={clearList}
+      />
+      <Stats items={items} />
     </div>
   );
 }
 function Logo() {
   return <h1>🏝️ get ready 🧳</h1>;
 }
-function Form({ addItemToPackage }) {
+function Form({ onAddItemToPackage }) {
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState(1);
 
@@ -35,8 +58,7 @@ function Form({ addItemToPackage }) {
       id: Date.now(),
       passed: false,
     };
-    console.log(newItem);
-    addItemToPackage(newItem);
+    onAddItemToPackage(newItem);
     setDescription("");
     setQuantity(1);
   }
@@ -63,31 +85,88 @@ function Form({ addItemToPackage }) {
     </form>
   );
 }
-function PackagingList({ items }) {
+function PackagingList({ items, onDeleteItem, onToggleItem, clearList }) {
+  const [sortBy, setSortBy] = useState("input");
+  let sortedItems = items;
+
+  if (sortBy === "input") sortedItems = items;
+
+  if (sortBy === "description") {
+    sortedItems = items
+      .slice()
+      .sort((a, b) => a.description.localeCompare(b.description));
+  }
+
+  if (sortBy === "packed") {
+    sortedItems = items
+      .slice()
+      .sort((a, b) => Number(a.packed) - Number(b.packed));
+  }
   return (
     <div className="list">
       <ul>
-        {items.map((item) => (
-          <Item item={item} key={item.id} />
+        {sortedItems.map((item) => (
+          <Item
+            item={item}
+            key={item.id}
+            onDeleteItem={onDeleteItem}
+            onToggleItem={onToggleItem}
+          />
         ))}
       </ul>
+      <div className="actions">
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(() => e.target.value)}
+        >
+          <option value="input">Sort by input order</option>
+          <option value="description">Sort by description</option>
+          <option value="packed">Sort by packed status</option>
+        </select>
+        <button onClick={clearList}>Clear list</button>
+      </div>
     </div>
   );
 }
-function Item({ item }) {
+function Item({ item, onDeleteItem, onToggleItem }) {
   return (
     <li>
+      <input
+        type="checkbox"
+        value={item.packed}
+        onChange={(e) => {
+          onToggleItem(item.id);
+        }}
+      />
       <span style={item.packed ? { textDecoration: "line-through" } : {}}>
         {item.quantity} {item.description}
       </span>
-      <button>❌</button>
+      <button onClick={() => onDeleteItem(item.id)}>❌</button>
     </li>
   );
 }
-function Stats() {
+function Stats({ items }) {
+  if (!items.length) {
+    return (
+      <p className="stats">Start adding some items to your packing list 🚀</p>
+    );
+  }
+
+  const numItems = items.length;
+  const numPacked = items.filter((item) => item.packed).length;
+  const donePercent = Math.round((numPacked / numItems) * 100);
   return (
     <footer className="stats">
-      <em>💼 You have 3 items on your list, and you already packed 2 (67%)</em>
+      <em>
+        {donePercent === 100
+          ? "You got everything! Ready to go 💃🕺"
+          : `
+        
+        💼 You have ${numItems} items on your list, and you already packed
+        ${numPacked}
+        (${donePercent}%)
+        `}
+      </em>
     </footer>
   );
 }
